@@ -222,4 +222,111 @@ public class SuitePerformanceHooks {
     
     System.out.println("✅ Environment properties created: " + envFile.getAbsolutePath());
 }
+
+private static void createOverviewAttachment(Map<String, Double> averages, Map<String, Object> stats) {
+        try {
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head>");
+            html.append("<meta charset='UTF-8'>");
+            html.append("<title>Performance Summary</title>");
+            html.append("<style>");
+            html.append("body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }");
+            html.append(".container { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 1200px; margin: 0 auto; }");
+            html.append("h1 { color: #333; text-align: center; font-size: 36px; margin-bottom: 40px; border-bottom: 4px solid #667eea; padding-bottom: 20px; }");
+            html.append(".metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 30px 0; }");
+            html.append(".metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.2); transition: transform 0.3s; }");
+            html.append(".metric-card:hover { transform: translateY(-5px); }");
+            html.append(".metric-value { font-size: 48px; font-weight: bold; margin: 15px 0; }");
+            html.append(".metric-label { font-size: 14px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }");
+            html.append(".metric-icon { font-size: 32px; margin-bottom: 10px; }");
+            html.append(".info-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }");
+            html.append("</style>");
+            html.append("</head><body>");
+            html.append("<div class='container'>");
+            html.append("<h1>🏆 Test Suite Performance Summary</h1>");
+            
+            // Info section
+            html.append("<div class='info-section'>");
+            html.append(String.format("<p><strong>Total Scenarios:</strong> %s</p>", stats.get("totalScenarios")));
+            html.append(String.format("<p><strong>Total Steps:</strong> %s</p>", stats.get("totalSteps")));
+            html.append(String.format("<p><strong>Cached Steps:</strong> %.0f (%.1f%% cache hit rate)</p>", 
+                averages.get("cachedSteps"),
+                averages.get("totalSteps") > 0 ? (averages.get("cachedSteps") / averages.get("totalSteps")) * 100 : 0));
+            html.append("</div>");
+            
+            // Metrics grid
+            html.append("<div class='metrics-grid'>");
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>📄</div>" +
+                "<div class='metric-label'>Avg Page Load Time</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgPageLoadTime")
+            ));
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>🔄</div>" +
+                "<div class='metric-label'>Avg DOM Ready Time</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgDomReadyTime")
+            ));
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>📡</div>" +
+                "<div class='metric-label'>Avg Response Time</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgResponseTime")
+            ));
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>⏱️</div>" +
+                "<div class='metric-label'>Avg TTFB</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgTtfb")
+            ));
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>🔌</div>" +
+                "<div class='metric-label'>Avg Connect Time</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgConnectTime")
+            ));
+            
+            html.append(String.format(
+                "<div class='metric-card'>" +
+                "<div class='metric-icon'>🌐</div>" +
+                "<div class='metric-label'>Avg DNS Lookup</div>" +
+                "<div class='metric-value'>%.0f ms</div>" +
+                "</div>",
+                averages.get("avgDomainLookupTime")
+            ));
+            
+            html.append("</div>");
+            html.append("</div>");
+            html.append("</body></html>");
+            
+            // Write to allure-results
+            File htmlFile = new File("target/allure-results/suite-performance-summary.html");
+            Files.write(Paths.get(htmlFile.toURI()), html.toString().getBytes(StandardCharsets.UTF_8));
+            
+            System.out.println("✅ Overview attachment created: " + htmlFile.getAbsolutePath());
+            System.out.println("   File exists: " + htmlFile.exists());
+            System.out.println("   File size: " + htmlFile.length() + " bytes");
+            
+        } catch (IOException e) {
+            System.err.println("❌ Error creating overview attachment: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 }
