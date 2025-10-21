@@ -466,4 +466,28 @@ private static String calculateOverallGrade(Map<String, Double> averages) {
     } else {
         return "❌ D (NEEDS IMPROVEMENT - " + String.format("%.0f%%", percentage) + ")";
     }
+
+    private static void createCategoriesJson(File allureResultsDir, Map<String, Double> averages) throws IOException {
+        // Create categories for performance thresholds
+        StringBuilder json = new StringBuilder();
+        json.append("[\n");
+        json.append("  {\n");
+        json.append("    \"name\": \"Slow Performance\",\n");
+        json.append("    \"messageRegex\": \".*SLOW.*\",\n");
+        json.append("    \"matchedStatuses\": [\"passed\"],\n");
+        json.append("    \"description\": \"Tests with slow page load times\"\n");
+        json.append("  },\n");
+        json.append("  {\n");
+        json.append("    \"name\": \"Good Performance\",\n");
+        json.append("    \"messageRegex\": \".*Good.*\",\n");
+        json.append("    \"matchedStatuses\": [\"passed\"],\n");
+        json.append("    \"description\": \"Tests with acceptable performance\"\n");
+        json.append("  }\n");
+        json.append("]\n");
+        
+        File categoriesFile = new File(allureResultsDir, "categories.json");
+        Files.write(Paths.get(categoriesFile.toURI()), json.toString().getBytes(StandardCharsets.UTF_8));
+        
+        System.out.println("✅ Categories JSON created: " + categoriesFile.getAbsolutePath());
+    }
 }
