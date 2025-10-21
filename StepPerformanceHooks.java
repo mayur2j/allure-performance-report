@@ -92,11 +92,13 @@ public class StepPerformanceHooks {
                         navPerfJSON,
                         ".json"
                     );
+
+                    String pageLoadStatus = getPerformanceStatusText(metrics.getPageLoadTime(), 2000, 3000);
                     
                     // Cucumber log
                     scenario.log(String.format(
                         "┌─────────────────────────────────────────────────┐\n" +
-                        "│ 🔄 STEP #%d PERFORMANCE METRICS\n" +
+                        "│ 🔄 STEP #%d PERFORMANCE METRICS - %s\n" +
                         "├─────────────────────────────────────────────────┤\n" +
                         "│ 📄 Page Load:      %4d ms %s\n" +
                         "│ 🔄 DOM Ready:      %4d ms %s\n" +
@@ -107,6 +109,7 @@ public class StepPerformanceHooks {
                         "│ 💾 From Cache:     %s\n" +
                         "└─────────────────────────────────────────────────┘",
                         stepCounter,
+                        pageLoadStatus,
                         metrics.getPageLoadTime(), getStatusEmoji(metrics.getPageLoadTime(), 3000),
                         metrics.getDomReadyTime(), getStatusEmoji(metrics.getDomReadyTime(), 2000),
                         metrics.getResponseTime(), getStatusEmoji(metrics.getResponseTime(), 1000),
@@ -124,6 +127,15 @@ public class StepPerformanceHooks {
         }
     }
     
+    private String getPerformanceStatusText(long value, long goodThreshold, long poorThreshold) {
+    if (value <= goodThreshold) {
+        return "EXCELLENT";  // ← Categories will match this
+    } else if (value <= poorThreshold) {
+        return "GOOD";       // ← Categories will match this
+    } else {
+        return "SLOW";       // ← Categories will match this
+    }
+        
     private String createTextSummary(int stepNumber, PerformanceMetrics metrics) {
         return String.format(
             "╔══════════════════════════════════════════════════════════════════╗\n" +
@@ -227,4 +239,5 @@ public class StepPerformanceHooks {
         if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength - 3) + "...";
     }
+
 }
