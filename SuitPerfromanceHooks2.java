@@ -427,4 +427,43 @@ private static String formatMetricWithStatus(long value, long goodThreshold, lon
     }
     return String.format("%s %d ms", status, value);
 }
+
+    private static String getPerformanceStatus(long value, long goodThreshold, long poorThreshold) {
+    if (value <= goodThreshold) {
+        return "✅ EXCELLENT";
+    } else if (value <= poorThreshold) {
+        return "⚡ GOOD";
+    } else {
+        return "❌ SLOW";
+    }
+}
+
+/**
+ * Calculate overall performance grade
+ */
+private static String calculateOverallGrade(Map<String, Double> averages) {
+    int score = 0;
+    int totalChecks = 6;
+    
+    // Check each metric
+    if (averages.get("avgPageLoadTime") <= 2000) score++;
+    if (averages.get("avgDomReadyTime") <= 1500) score++;
+    if (averages.get("avgResponseTime") <= 800) score++;
+    if (averages.get("avgTtfb") <= 400) score++;
+    if (averages.get("avgConnectTime") <= 200) score++;
+    if (averages.get("avgDomainLookupTime") <= 100) score++;
+    
+    double percentage = (score * 100.0) / totalChecks;
+    
+    if (percentage >= 83) {
+        return "🏆 A+ (EXCELLENT - " + String.format("%.0f%%", percentage) + ")";
+    } else if (percentage >= 67) {
+        return "⭐ A (GOOD - " + String.format("%.0f%%", percentage) + ")";
+    } else if (percentage >= 50) {
+        return "⚡ B (AVERAGE - " + String.format("%.0f%%", percentage) + ")";
+    } else if (percentage >= 33) {
+        return "⚠️ C (BELOW AVERAGE - " + String.format("%.0f%%", percentage) + ")";
+    } else {
+        return "❌ D (NEEDS IMPROVEMENT - " + String.format("%.0f%%", percentage) + ")";
+    }
 }
