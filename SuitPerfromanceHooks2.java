@@ -127,8 +127,24 @@ public class SuitPerfromanceHooks2 {
             html.append(".status-badge.warning { background: #ffc107; color: #000; }");
             html.append(".status-badge.failed { background: #dc3545; color: white; }");
 
+            // Collapsible styles
+            html.append(".collapsible { cursor: pointer; padding: 18px; width: 100%; border: none; text-align: left; outline: none; font-size: 20px; font-weight: 600; color: white; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); border-radius: 8px; margin: 15px 0 10px 0; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center; }");
+            html.append(".collapsible:hover { background: linear-gradient(135deg, #0056b3 0%, #004085 100%); }");
+            html.append(".collapsible.active { background: linear-gradient(135deg, #0056b3 0%, #004085 100%); }");
+            html.append(".collapsible-arrow { font-size: 24px; transition: transform 0.3s; }");
+            html.append(".collapsible.active .collapsible-arrow { transform: rotate(180deg); }");
+
+            html.append(".collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: #f8f9fa; border-radius: 0 0 8px 8px; }");
+            html.append(".collapsible-content.active { max-height: 10000px; transition: max-height 0.5s ease-in; }");
+            html.append(".collapsible-inner { padding: 20px; }");
+
+            // Nested collapsible (for steps under scenarios)
+            html.append(".collapsible-nested { background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); font-size: 16px; padding: 12px 18px; margin: 10px 0 5px 0; }");
+            html.append(".collapsible-nested:hover { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
+            html.append(".collapsible-nested.active { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
+
             // Scenario table styles
-            html.append(".scenario-table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
+            html.append(".scenario-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; }");
             html.append(".scenario-table th { background: #007bff; color: white; padding: 15px; text-align: left; font-weight: 600; }");
             html.append(".scenario-table td { padding: 12px 15px; border-bottom: 1px solid #dee2e6; }");
             html.append(".scenario-table tr:hover { background: #f8f9fa; }");
@@ -138,6 +154,16 @@ public class SuitPerfromanceHooks2 {
             html.append(".scenario-table .warning-cell { color: #ffc107; font-weight: bold; }");
             html.append(".scenario-table .failed-cell { color: #dc3545; font-weight: bold; }");
 
+            // Step table styles
+            html.append(".step-table { width: 100%; border-collapse: collapse; margin: 10px 0; background: white; }");
+            html.append(".step-table th { background: #17a2b8; color: white; padding: 12px; text-align: left; font-weight: 600; font-size: 14px; }");
+            html.append(".step-table td { padding: 10px 12px; border-bottom: 1px solid #e9ecef; font-size: 13px; }");
+            html.append(".step-table tr:hover { background: #f1f3f5; }");
+            html.append(".step-table .step-name { font-weight: 500; color: #2c3e50; max-width: 300px; }");
+            html.append(".step-table .cache-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }");
+            html.append(".step-table .cache-yes { background: #d4edda; color: #155724; }");
+            html.append(".step-table .cache-no { background: #f8d7da; color: #721c24; }");
+
             // Summary boxes
             html.append(".summary-boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }");
             html.append(".summary-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 10px; text-align: center; }");
@@ -145,6 +171,16 @@ public class SuitPerfromanceHooks2 {
             html.append(".summary-box .value { font-size: 36px; font-weight: bold; }");
 
             html.append("</style>");
+
+            // JavaScript for collapsible
+            html.append("<script>");
+            html.append("function toggleCollapsible(element) {");
+            html.append("  element.classList.toggle('active');");
+            html.append("  var content = element.nextElementSibling;");
+            html.append("  content.classList.toggle('active');");
+            html.append("}");
+            html.append("</script>");
+
             html.append("</head><body>");
 
             html.append("<div class='container'>");
@@ -224,8 +260,8 @@ public class SuitPerfromanceHooks2 {
 
             html.append("</div></div>");
 
-            // Scenario-wise Performance Section
-            addScenarioWiseSummary(html);
+            // Scenario-wise Performance Section (Collapsible)
+            addCollapsibleScenarioWiseSummary(html);
 
             html.append("</div>");
             html.append("</body></html>");
@@ -275,7 +311,7 @@ public class SuitPerfromanceHooks2 {
         html.append("</div>");
     }
 
-    private static void addScenarioWiseSummary(StringBuilder html) {
+    private static void addCollapsibleScenarioWiseSummary(StringBuilder html) {
         List<PerformanceMetrics> allMetrics = PerformanceStorage.getAllMetrics();
 
         // Group by scenario
@@ -289,7 +325,16 @@ public class SuitPerfromanceHooks2 {
         }
 
         html.append("<div class='section'>");
-        html.append("<h2 class='section-title'>Scenario-wise Performance Summary</h2>");
+
+        // Collapsible header for scenario-wise summary
+        html.append("<button class='collapsible' onclick='toggleCollapsible(this)'>");
+        html.append(String.format("<span>📊 Scenario-wise Performance Summary (%d scenarios)</span>", byScenario.size()));
+        html.append("<span class='collapsible-arrow'>▼</span>");
+        html.append("</button>");
+
+        html.append("<div class='collapsible-content'>");
+        html.append("<div class='collapsible-inner'>");
+
         html.append("<table class='scenario-table'>");
         html.append("<thead><tr>");
         html.append("<th>Scenario</th>");
@@ -304,6 +349,7 @@ public class SuitPerfromanceHooks2 {
         html.append("</tr></thead>");
         html.append("<tbody>");
 
+        int scenarioIndex = 0;
         for (Map.Entry<String, List<PerformanceMetrics>> entry : byScenario.entrySet()) {
             String scenarioName = entry.getKey();
             List<PerformanceMetrics> metrics = entry.getValue();
@@ -339,9 +385,66 @@ public class SuitPerfromanceHooks2 {
             html.append(formatScenarioMetricCell(avgDns, DNS_GOOD, DNS_POOR));
             html.append(String.format("<td class='metric-cell %s'>%s</td>", rowClass, scenarioStatus));
             html.append("</tr>");
+
+            // Add step-wise details for this scenario (collapsible)
+            html.append("<tr><td colspan='9' style='padding: 0; border: none;'>");
+            addStepWiseDetails(html, scenarioName, metrics, scenarioIndex);
+            html.append("</td></tr>");
+
+            scenarioIndex++;
         }
 
         html.append("</tbody></table>");
+        html.append("</div></div>");
+        html.append("</div>");
+    }
+
+    private static void addStepWiseDetails(StringBuilder html, String scenarioName, List<PerformanceMetrics> metrics, int scenarioIndex) {
+        html.append("<div style='padding: 0 15px 15px 15px; background: #f8f9fa;'>");
+
+        // Nested collapsible header for steps
+        html.append(String.format("<button class='collapsible collapsible-nested' onclick='toggleCollapsible(this)'>"));
+        html.append(String.format("<span>📝 Step-wise Details for '%s' (%d steps)</span>", scenarioName, metrics.size()));
+        html.append("<span class='collapsible-arrow'>▼</span>");
+        html.append("</button>");
+
+        html.append("<div class='collapsible-content'>");
+        html.append("<div class='collapsible-inner' style='background: white;'>");
+
+        html.append("<table class='step-table'>");
+        html.append("<thead><tr>");
+        html.append("<th>#</th>");
+        html.append("<th>Step Name</th>");
+        html.append("<th>Page Load</th>");
+        html.append("<th>DOM Ready</th>");
+        html.append("<th>Response</th>");
+        html.append("<th>TTFB</th>");
+        html.append("<th>Connect</th>");
+        html.append("<th>DNS</th>");
+        html.append("<th>Cached</th>");
+        html.append("</tr></thead>");
+        html.append("<tbody>");
+
+        int stepNum = 1;
+        for (PerformanceMetrics metric : metrics) {
+            html.append("<tr>");
+            html.append(String.format("<td>%d</td>", stepNum++));
+            html.append(String.format("<td class='step-name'>%s</td>", metric.getStepName() != null ? metric.getStepName() : "N/A"));
+            html.append(formatStepMetricCell(metric.getPageLoadTime(), PAGE_LOAD_GOOD, PAGE_LOAD_POOR));
+            html.append(formatStepMetricCell(metric.getDomReadyTime(), DOM_READY_GOOD, DOM_READY_POOR));
+            html.append(formatStepMetricCell(metric.getResponseTime(), RESPONSE_GOOD, RESPONSE_POOR));
+            html.append(formatStepMetricCell(metric.getTtfb(), TTFB_GOOD, TTFB_POOR));
+            html.append(formatStepMetricCell(metric.getConnectTime(), CONNECT_GOOD, CONNECT_POOR));
+            html.append(formatStepMetricCell(metric.getDomainLookupTime(), DNS_GOOD, DNS_POOR));
+
+            String cacheClass = metric.isFromCache() ? "cache-yes" : "cache-no";
+            String cacheText = metric.isFromCache() ? "✓ Yes" : "✗ No";
+            html.append(String.format("<td class='metric-cell'><span class='cache-badge %s'>%s</span></td>", cacheClass, cacheText));
+            html.append("</tr>");
+        }
+
+        html.append("</tbody></table>");
+        html.append("</div></div>");
         html.append("</div>");
     }
 
@@ -350,6 +453,13 @@ public class SuitPerfromanceHooks2 {
         String cellClass = status.equals("PASSED") ? "passed-cell" : (status.equals("WARNING") ? "warning-cell" : "failed-cell");
         String emoji = status.equals("PASSED") ? "✅" : (status.equals("WARNING") ? "⚡" : "❌");
         return String.format("<td class='metric-cell %s'>%s %d ms</td>", cellClass, emoji, value);
+    }
+
+    private static String formatStepMetricCell(long value, long goodThreshold, long poorThreshold) {
+        String status = getMetricStatus(value, goodThreshold, poorThreshold);
+        String cellClass = status.equals("PASSED") ? "passed-cell" : (status.equals("WARNING") ? "warning-cell" : "failed-cell");
+        String emoji = status.equals("PASSED") ? "✅" : (status.equals("WARNING") ? "⚡" : "❌");
+        return String.format("<td class='metric-cell %s'>%s %d</td>", cellClass, emoji, value);
     }
 
     private static String getMetricStatus(long value, long goodThreshold, long poorThreshold) {

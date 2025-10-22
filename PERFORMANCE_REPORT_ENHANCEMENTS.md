@@ -17,7 +17,22 @@ Each metric has three threshold levels:
 - **Acceptable (Warning)**: ⚡ Yellow - Performance acceptable but could be better
 - **Poor (Failed)**: ❌ Red - Performance needs improvement
 
-### 3. Performance Thresholds
+### 3. Collapsible Scenario-wise Summary
+- **Collapsible section** showing performance breakdown by scenario
+- Click to expand/collapse scenario details
+- Blue button with arrow indicator showing expand/collapse state
+- Shows scenario count in header
+- Table with all scenarios and their performance metrics
+
+### 4. Step-wise Details (Nested Collapsible)
+- Under each scenario, there's a **nested collapsible section** for step-wise details
+- Teal/cyan colored button distinguishing it from scenario-level
+- Shows individual step performance metrics
+- Includes step name, all 6 performance metrics, and cache status
+- Color-coded metrics with emojis for each step
+- Cache status shown with green "✓ Yes" or red "✗ No" badges
+
+### 5. Performance Thresholds
 
 | Metric | Good (Passed) | Acceptable (Warning) | Poor (Failed) |
 |--------|--------------|---------------------|---------------|
@@ -28,7 +43,7 @@ Each metric has three threshold levels:
 | Connection Time | ≤ 200 ms | 201-400 ms | > 400 ms |
 | DNS Lookup Time | ≤ 100 ms | 101-200 ms | > 200 ms |
 
-### 4. Color-Coded Metric Cards
+### 6. Color-Coded Metric Cards
 Each performance metric is displayed in a card with:
 - **Border and background color** matching the status (green/yellow/red)
 - **Large emoji** indicator (✅/⚡/❌)
@@ -36,14 +51,7 @@ Each performance metric is displayed in a card with:
 - **Threshold information** showing all three levels
 - **Hover effects** for better interactivity
 
-### 5. Scenario-wise Performance Summary
-A detailed table showing:
-- Performance breakdown for **each scenario**
-- **All 6 metrics** per scenario with color-coded status
-- **Overall scenario status** (PASSED/FAILED)
-- Easy identification of problematic scenarios
-
-### 6. Summary Statistics
+### 7. Summary Statistics
 Four key summary boxes displaying:
 - Total Scenarios
 - Total Steps
@@ -66,12 +74,64 @@ target/allure-results/suite-performance-summary.html
 ## Automatic Generation
 The report is automatically generated via a shutdown hook when the test suite completes. No manual invocation is required.
 
+## Hierarchical Structure
+
+The report follows a clear hierarchy:
+
+```
+Suite Level (Always Visible)
+├── Overall Pass/Fail Header
+├── Summary Statistics
+├── Suite-level Metrics (6 cards)
+│
+└── Scenario-wise Summary (Collapsible) 📊
+    ├── Scenario 1
+    │   ├── Average metrics across all steps
+    │   └── Step-wise Details (Nested Collapsible) 📝
+    │       ├── Step 1 - individual metrics
+    │       ├── Step 2 - individual metrics
+    │       └── Step N - individual metrics
+    │
+    ├── Scenario 2
+    │   ├── Average metrics
+    │   └── Step-wise Details (Nested Collapsible)
+    │       └── ...
+    │
+    └── Scenario N
+        └── ...
+```
+
+## Interactive Features
+
+### Collapsible Sections
+- **Scenario-wise Summary**: Click the blue button to expand/collapse all scenarios
+- **Step-wise Details**: Click the teal button under each scenario to view individual steps
+- **Visual Feedback**: Arrow rotates 180° when expanded
+- **Smooth Animation**: Content smoothly expands/collapses
+- **Independent Control**: Each section can be expanded/collapsed independently
+
+### Color Coding
+- **Suite Level Button**: Blue gradient (#007bff to #0056b3)
+- **Scenario Level Button**: Teal gradient (#17a2b8 to #117a8b)
+- **Passed Metrics**: Green (#28a745)
+- **Warning Metrics**: Yellow/Amber (#ffc107)
+- **Failed Metrics**: Red (#dc3545)
+
 ## Visual Design
 - **Modern, responsive design** with gradient backgrounds
 - **Professional color scheme** using Bootstrap-inspired colors
 - **Card-based layout** for metrics
 - **Interactive hover effects**
 - **Clear typography** with proper hierarchy
+- **Collapsible sections** to manage large amounts of data
 
 ## Usage
 Simply run your tests as usual. The detailed performance report will be automatically generated when the test suite completes. Open the HTML file in any web browser to view the comprehensive performance analysis.
+
+### Navigating the Report
+1. View the overall pass/fail status at the top
+2. Review suite-level summary statistics
+3. Examine the 6 key performance metric cards
+4. Click "Scenario-wise Performance Summary" to see all scenarios
+5. Click individual scenario's "Step-wise Details" to drill down to step level
+6. Use color coding to quickly identify problem areas
