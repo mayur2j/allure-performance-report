@@ -138,10 +138,15 @@ public class SuitPerfromanceHooks2 {
             html.append(".collapsible-content.active { max-height: 10000px; transition: max-height 0.5s ease-in; }");
             html.append(".collapsible-inner { padding: 20px; }");
 
-            // Nested collapsible (for steps under scenarios)
-            html.append(".collapsible-nested { background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); font-size: 16px; padding: 12px 18px; margin: 10px 0 5px 0; }");
-            html.append(".collapsible-nested:hover { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
-            html.append(".collapsible-nested.active { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
+            // Nested collapsible (for scenarios under suites)
+            html.append(".collapsible-nested { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); font-size: 18px; padding: 14px 18px; margin: 10px 0 5px 0; }");
+            html.append(".collapsible-nested:hover { background: linear-gradient(135deg, #5a32a3 0%, #4c2a8a 100%); }");
+            html.append(".collapsible-nested.active { background: linear-gradient(135deg, #5a32a3 0%, #4c2a8a 100%); }");
+
+            // Double nested collapsible (for steps under scenarios)
+            html.append(".collapsible-double-nested { background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); font-size: 15px; padding: 10px 18px; margin: 10px 0 5px 0; }");
+            html.append(".collapsible-double-nested:hover { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
+            html.append(".collapsible-double-nested.active { background: linear-gradient(135deg, #117a8b 0%, #0c5460 100%); }");
 
             // Scenario table styles
             html.append(".scenario-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; border-radius: 8px; overflow: hidden; }");
@@ -314,96 +319,134 @@ public class SuitPerfromanceHooks2 {
     private static void addCollapsibleScenarioWiseSummary(StringBuilder html) {
         List<PerformanceMetrics> allMetrics = PerformanceStorage.getAllMetrics();
 
-        // Group by scenario
-        Map<String, List<PerformanceMetrics>> byScenario = new LinkedHashMap<>();
+        // First group by feature/suite, then by scenario within each suite
+        Map<String, Map<String, List<PerformanceMetrics>>> bySuiteThenScenario = new LinkedHashMap<>();
+
         for (PerformanceMetrics metric : allMetrics) {
-            byScenario.computeIfAbsent(metric.getScenarioName(), k -> new ArrayList<>()).add(metric);
+            String suiteName = metric.getFeatureName() != null ? metric.getFeatureName() : "Unknown Suite";
+            String scenarioName = metric.getScenarioName();
+
+            bySuiteThenScenario
+                .computeIfAbsent(suiteName, k -> new LinkedHashMap<>())
+                .computeIfAbsent(scenarioName, k -> new ArrayList<>())
+                .add(metric);
         }
 
-        if (byScenario.isEmpty()) {
+        if (bySuiteThenScenario.isEmpty()) {
             return;
         }
 
+        int totalSuites = bySuiteThenScenario.size();
+        int totalScenarios = bySuiteThenScenario.values().stream()
+            .mapToInt(Map::size)
+            .sum();
+
         html.append("<div class='section'>");
 
-        // Collapsible header for scenario-wise summary
+        // Top-level collapsible header for all suites
         html.append("<button class='collapsible' onclick='toggleCollapsible(this)'>");
-        html.append(String.format("<span>📊 Scenario-wise Performance Summary (%d scenarios)</span>", byScenario.size()));
+        html.append(String.format("<span>📊 Suite-wise Performance Summary (%d suites, %d scenarios)</span>", totalSuites, totalScenarios));
         html.append("<span class='collapsible-arrow'>▼</span>");
         html.append("</button>");
 
         html.append("<div class='collapsible-content'>");
         html.append("<div class='collapsible-inner'>");
 
-        html.append("<table class='scenario-table'>");
-        html.append("<thead><tr>");
-        html.append("<th>Scenario</th>");
-        html.append("<th>Steps</th>");
-        html.append("<th>Page Load</th>");
-        html.append("<th>DOM Ready</th>");
-        html.append("<th>Response</th>");
-        html.append("<th>TTFB</th>");
-        html.append("<th>Connect</th>");
-        html.append("<th>DNS</th>");
-        html.append("<th>Status</th>");
-        html.append("</tr></thead>");
-        html.append("<tbody>");
+        // Iterate through each suite
+        int suiteIndex = 0;
+        for (Map.Entry<String, Map<String, List<PerformanceMetrics>>> suiteEntry : bySuiteThenScenario.entrySet()) {
+            String suiteName = suiteEntry.getKey();
+            Map<String, List<PerformanceMetrics>> scenariosInSuite = suiteEntry.getValue();
 
-        int scenarioIndex = 0;
-        for (Map.Entry<String, List<PerformanceMetrics>> entry : byScenario.entrySet()) {
-            String scenarioName = entry.getKey();
-            List<PerformanceMetrics> metrics = entry.getValue();
+            // Calculate suite-level statistics
+            int totalStepsInSuite = scenariosInSuite.values().stream()
+                .mapToInt(List::size)
+                .sum();
 
-            // Calculate averages for this scenario
-            long avgPageLoad = (long) metrics.stream().mapToLong(PerformanceMetrics::getPageLoadTime).average().orElse(0);
-            long avgDomReady = (long) metrics.stream().mapToLong(PerformanceMetrics::getDomReadyTime).average().orElse(0);
-            long avgResponse = (long) metrics.stream().mapToLong(PerformanceMetrics::getResponseTime).average().orElse(0);
-            long avgTtfb = (long) metrics.stream().mapToLong(PerformanceMetrics::getTtfb).average().orElse(0);
-            long avgConnect = (long) metrics.stream().mapToLong(PerformanceMetrics::getConnectTime).average().orElse(0);
-            long avgDns = (long) metrics.stream().mapToLong(PerformanceMetrics::getDomainLookupTime).average().orElse(0);
+            // Suite-level collapsible button (nested under main collapsible)
+            html.append("<button class='collapsible collapsible-nested' onclick='toggleCollapsible(this)'>");
+            html.append(String.format("<span>🎯 %s (%d scenarios, %d steps)</span>", suiteName, scenariosInSuite.size(), totalStepsInSuite));
+            html.append("<span class='collapsible-arrow'>▼</span>");
+            html.append("</button>");
 
-            // Determine scenario status
-            int passedCount = 0;
-            if (avgPageLoad <= PAGE_LOAD_GOOD) passedCount++;
-            if (avgDomReady <= DOM_READY_GOOD) passedCount++;
-            if (avgResponse <= RESPONSE_GOOD) passedCount++;
-            if (avgTtfb <= TTFB_GOOD) passedCount++;
-            if (avgConnect <= CONNECT_GOOD) passedCount++;
-            if (avgDns <= DNS_GOOD) passedCount++;
+            html.append("<div class='collapsible-content'>");
+            html.append("<div class='collapsible-inner'>");
 
-            String scenarioStatus = passedCount >= 4 ? "PASSED ✅" : "FAILED ❌";
-            String rowClass = passedCount >= 4 ? "passed-cell" : "failed-cell";
+            // Scenario table for this suite
+            html.append("<table class='scenario-table'>");
+            html.append("<thead><tr>");
+            html.append("<th>Scenario</th>");
+            html.append("<th>Steps</th>");
+            html.append("<th>Page Load</th>");
+            html.append("<th>DOM Ready</th>");
+            html.append("<th>Response</th>");
+            html.append("<th>TTFB</th>");
+            html.append("<th>Connect</th>");
+            html.append("<th>DNS</th>");
+            html.append("<th>Status</th>");
+            html.append("</tr></thead>");
+            html.append("<tbody>");
 
-            html.append("<tr>");
-            html.append(String.format("<td class='scenario-name'>%s</td>", scenarioName));
-            html.append(String.format("<td class='metric-cell'>%d</td>", metrics.size()));
-            html.append(formatScenarioMetricCell(avgPageLoad, PAGE_LOAD_GOOD, PAGE_LOAD_POOR));
-            html.append(formatScenarioMetricCell(avgDomReady, DOM_READY_GOOD, DOM_READY_POOR));
-            html.append(formatScenarioMetricCell(avgResponse, RESPONSE_GOOD, RESPONSE_POOR));
-            html.append(formatScenarioMetricCell(avgTtfb, TTFB_GOOD, TTFB_POOR));
-            html.append(formatScenarioMetricCell(avgConnect, CONNECT_GOOD, CONNECT_POOR));
-            html.append(formatScenarioMetricCell(avgDns, DNS_GOOD, DNS_POOR));
-            html.append(String.format("<td class='metric-cell %s'>%s</td>", rowClass, scenarioStatus));
-            html.append("</tr>");
+            int scenarioIndex = 0;
+            for (Map.Entry<String, List<PerformanceMetrics>> scenarioEntry : scenariosInSuite.entrySet()) {
+                String scenarioName = scenarioEntry.getKey();
+                List<PerformanceMetrics> metrics = scenarioEntry.getValue();
 
-            // Add step-wise details for this scenario (collapsible)
-            html.append("<tr><td colspan='9' style='padding: 0; border: none;'>");
-            addStepWiseDetails(html, scenarioName, metrics, scenarioIndex);
-            html.append("</td></tr>");
+                // Calculate averages for this scenario
+                long avgPageLoad = (long) metrics.stream().mapToLong(PerformanceMetrics::getPageLoadTime).average().orElse(0);
+                long avgDomReady = (long) metrics.stream().mapToLong(PerformanceMetrics::getDomReadyTime).average().orElse(0);
+                long avgResponse = (long) metrics.stream().mapToLong(PerformanceMetrics::getResponseTime).average().orElse(0);
+                long avgTtfb = (long) metrics.stream().mapToLong(PerformanceMetrics::getTtfb).average().orElse(0);
+                long avgConnect = (long) metrics.stream().mapToLong(PerformanceMetrics::getConnectTime).average().orElse(0);
+                long avgDns = (long) metrics.stream().mapToLong(PerformanceMetrics::getDomainLookupTime).average().orElse(0);
 
-            scenarioIndex++;
+                // Determine scenario status
+                int passedCount = 0;
+                if (avgPageLoad <= PAGE_LOAD_GOOD) passedCount++;
+                if (avgDomReady <= DOM_READY_GOOD) passedCount++;
+                if (avgResponse <= RESPONSE_GOOD) passedCount++;
+                if (avgTtfb <= TTFB_GOOD) passedCount++;
+                if (avgConnect <= CONNECT_GOOD) passedCount++;
+                if (avgDns <= DNS_GOOD) passedCount++;
+
+                String scenarioStatus = passedCount >= 4 ? "PASSED ✅" : "FAILED ❌";
+                String rowClass = passedCount >= 4 ? "passed-cell" : "failed-cell";
+
+                html.append("<tr>");
+                html.append(String.format("<td class='scenario-name'>%s</td>", scenarioName));
+                html.append(String.format("<td class='metric-cell'>%d</td>", metrics.size()));
+                html.append(formatScenarioMetricCell(avgPageLoad, PAGE_LOAD_GOOD, PAGE_LOAD_POOR));
+                html.append(formatScenarioMetricCell(avgDomReady, DOM_READY_GOOD, DOM_READY_POOR));
+                html.append(formatScenarioMetricCell(avgResponse, RESPONSE_GOOD, RESPONSE_POOR));
+                html.append(formatScenarioMetricCell(avgTtfb, TTFB_GOOD, TTFB_POOR));
+                html.append(formatScenarioMetricCell(avgConnect, CONNECT_GOOD, CONNECT_POOR));
+                html.append(formatScenarioMetricCell(avgDns, DNS_GOOD, DNS_POOR));
+                html.append(String.format("<td class='metric-cell %s'>%s</td>", rowClass, scenarioStatus));
+                html.append("</tr>");
+
+                // Add step-wise details for this scenario (double nested collapsible)
+                html.append("<tr><td colspan='9' style='padding: 0; border: none;'>");
+                addStepWiseDetails(html, scenarioName, metrics, suiteIndex, scenarioIndex);
+                html.append("</td></tr>");
+
+                scenarioIndex++;
+            }
+
+            html.append("</tbody></table>");
+            html.append("</div></div>"); // Close suite collapsible content
+
+            suiteIndex++;
         }
 
-        html.append("</tbody></table>");
-        html.append("</div></div>");
-        html.append("</div>");
+        html.append("</div></div>"); // Close main collapsible content
+        html.append("</div>"); // Close section
     }
 
-    private static void addStepWiseDetails(StringBuilder html, String scenarioName, List<PerformanceMetrics> metrics, int scenarioIndex) {
+    private static void addStepWiseDetails(StringBuilder html, String scenarioName, List<PerformanceMetrics> metrics, int suiteIndex, int scenarioIndex) {
         html.append("<div style='padding: 0 15px 15px 15px; background: #f8f9fa;'>");
 
-        // Nested collapsible header for steps
-        html.append(String.format("<button class='collapsible collapsible-nested' onclick='toggleCollapsible(this)'>"));
+        // Double nested collapsible header for steps (under scenario, which is under suite)
+        html.append(String.format("<button class='collapsible collapsible-double-nested' onclick='toggleCollapsible(this)'>"));
         html.append(String.format("<span>📝 Step-wise Details for '%s' (%d steps)</span>", scenarioName, metrics.size()));
         html.append("<span class='collapsible-arrow'>▼</span>");
         html.append("</button>");
