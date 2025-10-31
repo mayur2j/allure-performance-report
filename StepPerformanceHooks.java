@@ -13,30 +13,64 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Captures step-level performance metrics
+ * Only monitors scenarios tagged with the PERFORMANCE_MONITOR_TAG
  */
 public class StepPerformanceHooks {
-    
+
+    /**
+     * Tag to enable performance monitoring for specific scenarios
+     * Usage: Add @MonitorPerformance tag to scenarios you want to monitor
+     * Example:
+     *   @MonitorPerformance
+     *   Scenario: Login with valid credentials
+     *     Given user navigates to login page
+     *     When user enters credentials
+     */
+    private static final String PERFORMANCE_MONITOR_TAG = "@MonitorPerformance";
+
     private long stepStartTime;
     private WebDriver driver;
     private SPAPerformanceTracker spaTracker;
     private int stepCounter = 0;
-    
+    private boolean shouldMonitor = false;
+
     @BeforeStep(order = 0)
     public void beforeStep(Scenario scenario) {
+        // Check if this scenario should be monitored based on tags
+        shouldMonitor = shouldMonitorPerformance(scenario);
+
+        if (!shouldMonitor) {
+            return; // Skip performance monitoring for this scenario
+        }
+
         stepStartTime = System.currentTimeMillis();
         driver = DriverManager.getDriver();
-        
+
         if (spaTracker == null) {
             spaTracker = new SPAPerformanceTracker(driver);
         }
-        
+
         stepCounter++;
+    }
+
+    /**
+     * Checks if performance monitoring is enabled for this scenario
+     * @param scenario The current scenario
+     * @return true if scenario has the performance monitoring tag, false otherwise
+     */
+    private boolean shouldMonitorPerformance(Scenario scenario) {
+        return scenario.getSourceTagNames().contains(PERFORMANCE_MONITOR_TAG);
     }
     
     @AfterStep(order = 100)
     public void afterStep(Scenario scenario) {
+        // Skip if performance monitoring is not enabled for this scenario
+        if (!shouldMonitor) {
+            return;
+        }
+
         long stepDuration = System.currentTimeMillis() - stepStartTime;
-        
+
         try {
             Thread.sleep(200);
             
