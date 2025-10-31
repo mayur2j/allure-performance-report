@@ -14,18 +14,42 @@ import java.util.stream.Collectors;
  * Thread-safe storage for performance metrics across all tests
  */
 public class PerformanceStorage {
-    
+
     private static final Map<String, List<PerformanceMetrics>> scenarioMetrics = new ConcurrentHashMap<>();
     private static final List<PerformanceMetrics> allMetrics = new CopyOnWriteArrayList<>();
-    
+    private static int skippedStepsCount = 0;
+    private static final List<String> skippedStepReasons = new CopyOnWriteArrayList<>();
+
     /**
      * Add performance metrics for a step
      */
     public static void addMetrics(PerformanceMetrics metrics) {
         allMetrics.add(metrics);
-        
+
         String scenarioKey = metrics.getScenarioName();
         scenarioMetrics.computeIfAbsent(scenarioKey, k -> new CopyOnWriteArrayList<>()).add(metrics);
+    }
+
+    /**
+     * Record a skipped step
+     */
+    public static synchronized void recordSkippedStep(String stepName, String scenarioName, String reason) {
+        skippedStepsCount++;
+        skippedStepReasons.add(String.format("%s - %s (Reason: %s)", scenarioName, stepName, reason));
+    }
+
+    /**
+     * Get count of skipped steps
+     */
+    public static int getSkippedStepsCount() {
+        return skippedStepsCount;
+    }
+
+    /**
+     * Get list of skipped step reasons
+     */
+    public static List<String> getSkippedStepReasons() {
+        return new ArrayList<>(skippedStepReasons);
     }
     
     /**
@@ -169,8 +193,10 @@ public class PerformanceStorage {
     public static void clear() {
         allMetrics.clear();
         scenarioMetrics.clear();
+        skippedStepsCount = 0;
+        skippedStepReasons.clear();
     }
-    
+
     /**
      * Get statistics summary
      */
@@ -178,8 +204,11 @@ public class PerformanceStorage {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalSteps", allMetrics.size());
         stats.put("totalScenarios", scenarioMetrics.size());
+        stats.put("skippedSteps", skippedStepsCount);
+        stats.put("measuredSteps", allMetrics.size());
+        stats.put("totalStepsExecuted", allMetrics.size() + skippedStepsCount);
         stats.put("averages", calculateSuiteAverages());
-        
+
         return stats;
     }
 }

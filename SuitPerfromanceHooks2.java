@@ -56,10 +56,12 @@ public class SuitePerformanceHooks {
             generateEnvironmentProperties(averages, stats);
             
             widgetGenerated = true;
-            
+
             System.out.println("✅ Suite performance widget generated");
-            System.out.println("   Total Steps: " + stats.get("totalSteps"));
             System.out.println("   Total Scenarios: " + stats.get("totalScenarios"));
+            System.out.println("   Total Steps Executed: " + stats.get("totalStepsExecuted"));
+            System.out.println("   Measured Steps: " + stats.get("measuredSteps"));
+            System.out.println("   Skipped Steps: " + stats.get("skippedSteps"));
             System.out.println("   Avg Page Load: " + String.format("%.0f ms", averages.get("avgPageLoadTime")));
             
         } catch (Exception e) {
@@ -103,16 +105,18 @@ public class SuitePerformanceHooks {
     private static void createSummaryJson(File widgetsDir, Map<String, Double> averages, Map<String, Object> stats) throws IOException {
         // This is what Allure actually reads for custom summary widgets
         Map<String, Object> summary = new HashMap<>();
-        
+
         summary.put("statistic", Map.of(
-            "total", stats.get("totalSteps"),
+            "total", stats.get("totalStepsExecuted"),
+            "measured", stats.get("measuredSteps"),
+            "skipped", stats.get("skippedSteps"),
             "scenarios", stats.get("totalScenarios")
         ));
-        
+
         summary.put("time", Map.of(
             "duration", averages.get("avgPageLoadTime").longValue()
         ));
-        
+
         // Extra data for custom display
         Map<String, Object> extra = new HashMap<>();
         extra.put("Performance Metrics", Map.of(
@@ -122,10 +126,11 @@ public class SuitePerformanceHooks {
             "Avg TTFB", String.format("%.0f ms", averages.get("avgTtfb")),
             "Avg Connect", String.format("%.0f ms", averages.get("avgConnectTime")),
             "Avg DNS Lookup", String.format("%.0f ms", averages.get("avgDomainLookupTime")),
-            "Total Steps", stats.get("totalSteps").toString(),
-            "Cache Hit Rate", String.format("%.1f%%", 
-                averages.get("totalSteps") > 0 
-                    ? (averages.get("cachedSteps") / averages.get("totalSteps")) * 100 
+            "Measured Steps", stats.get("measuredSteps").toString(),
+            "Skipped Steps", stats.get("skippedSteps").toString(),
+            "Cache Hit Rate", String.format("%.1f%%",
+                averages.get("totalSteps") > 0
+                    ? (averages.get("cachedSteps") / averages.get("totalSteps")) * 100
                     : 0)
         ));
         
@@ -189,18 +194,20 @@ public class SuitePerformanceHooks {
 
   private static void generateEnvironmentProperties(Map<String, Double> averages, Map<String, Object> stats) throws IOException {
     StringBuilder props = new StringBuilder();
-    
+
     // System Info
     props.append("# System Information\n");
     props.append("Browser=Chrome\n");
     props.append("OS=").append(System.getProperty("os.name")).append("\n");
     props.append("Java.Version=").append(System.getProperty("java.version")).append("\n");
     props.append("\n");
-    
+
     // Performance Summary (This will appear in Environment section)
     props.append("# === PERFORMANCE SUMMARY ===\n");
     props.append(String.format("📊.Total.Scenarios=%s\n", stats.get("totalScenarios")));
-    props.append(String.format("📊.Total.Steps=%s\n", stats.get("totalSteps")));
+    props.append(String.format("📊.Total.Steps.Executed=%s\n", stats.get("totalStepsExecuted")));
+    props.append(String.format("📊.Measured.Steps=%s\n", stats.get("measuredSteps")));
+    props.append(String.format("⏭️.Skipped.Steps=%s\n", stats.get("skippedSteps")));
     props.append("\n");
     props.append("# Average Metrics\n");
     props.append(String.format("📄.Avg.Page.Load=%.0f ms\n", averages.get("avgPageLoadTime")));
@@ -211,15 +218,15 @@ public class SuitePerformanceHooks {
     props.append(String.format("🌐.Avg.DNS.Lookup=%.0f ms\n", averages.get("avgDomainLookupTime")));
     props.append("\n");
     props.append("# Cache Statistics\n");
-    props.append(String.format("💾.Cache.Hit.Rate=%.1f%%\n", 
-        averages.get("totalSteps") > 0 
-            ? (averages.get("cachedSteps") / averages.get("totalSteps")) * 100 
+    props.append(String.format("💾.Cache.Hit.Rate=%.1f%%\n",
+        averages.get("totalSteps") > 0
+            ? (averages.get("cachedSteps") / averages.get("totalSteps")) * 100
             : 0));
     props.append(String.format("💾.Cached.Steps=%.0f\n", averages.get("cachedSteps")));
-    
+
     File envFile = new File("target/allure-results/environment.properties");
     Files.write(Paths.get(envFile.toURI()), props.toString().getBytes(StandardCharsets.UTF_8));
-    
+
     System.out.println("✅ Environment properties created: " + envFile.getAbsolutePath());
 }
 

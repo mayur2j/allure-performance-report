@@ -36,10 +36,38 @@ public class StepPerformanceHooks {
     @AfterStep(order = 100)
     public void afterStep(Scenario scenario) {
         long stepDuration = System.currentTimeMillis() - stepStartTime;
-        
+
+        // ═══════════════════════════════════════════════════
+        // STEP SKIP HANDLING: Check if step should be skipped
+        // ═══════════════════════════════════════════════════
+        if (shouldSkipStep(scenario)) {
+            String stepName = "Step #" + stepCounter;
+            String reason = scenario.getStatus().toString();
+
+            // Record skipped step in storage
+            PerformanceStorage.recordSkippedStep(stepName, scenario.getName(), reason);
+
+            // Log to scenario
+            scenario.log(String.format(
+                "⏭️  STEP #%d SKIPPED - Performance metrics not collected (Status: %s)",
+                stepCounter,
+                scenario.getStatus()
+            ));
+
+            // Allure attachment for skipped step
+            Allure.addAttachment(
+                String.format("⏭️ Step #%d - SKIPPED", stepCounter),
+                "text/plain",
+                String.format("Step was skipped and performance metrics were not collected.\nReason: %s", reason),
+                ".txt"
+            );
+
+            return; // Skip performance metric collection
+        }
+
         try {
             Thread.sleep(200);
-            
+
             boolean domChanged = spaTracker.hasDOMChanged();
             
             if (domChanged) {
@@ -127,15 +155,38 @@ public class StepPerformanceHooks {
         }
     }
     
-    private String getPerformanceStatusText(long value, long goodThreshold, long poorThreshold) {
-    if (value <= goodThreshold) {
-        return "EXCELLENT";  // ← Categories will match this
-    } else if (value <= poorThreshold) {
-        return "GOOD";       // ← Categories will match this
-    } else {
-        return "SLOW";       // ← Categories will match this
+    /**
+     * Determines if a step should be skipped for performance metric collection
+     * Skips metrics for: SKIPPED, PENDING, UNDEFINED steps
+     */
+    private boolean shouldSkipStep(Scenario scenario) {
+        io.cucumber.plugin.event.Status status = scenario.getStatus();
+
+        // Skip if scenario/step is skipped, pending, or undefined
+        if (status == io.cucumber.plugin.event.Status.SKIPPED) {
+            return true;
+        }
+        if (status == io.cucumber.plugin.event.Status.PENDING) {
+            return true;
+        }
+        if (status == io.cucumber.plugin.event.Status.UNDEFINED) {
+            return true;
+        }
+
+        // Don't skip for PASSED or FAILED - we still want metrics
+        return false;
     }
-        
+
+    private String getPerformanceStatusText(long value, long goodThreshold, long poorThreshold) {
+        if (value <= goodThreshold) {
+            return "EXCELLENT";  // ← Categories will match this
+        } else if (value <= poorThreshold) {
+            return "GOOD";       // ← Categories will match this
+        } else {
+            return "SLOW";       // ← Categories will match this
+        }
+    }
+
     private String createTextSummary(int stepNumber, PerformanceMetrics metrics) {
         return String.format(
             "╔══════════════════════════════════════════════════════════════════╗\n" +
