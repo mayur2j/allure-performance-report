@@ -23,18 +23,28 @@ public class StepPerformanceHooks {
     
     @BeforeStep(order = 0)
     public void beforeStep(Scenario scenario) {
+        // Skip performance tracking if scenario has the @skip-performance tag
+        if (shouldSkipPerformanceTracking(scenario)) {
+            return;
+        }
+
         stepStartTime = System.currentTimeMillis();
         driver = DriverManager.getDriver();
-        
+
         if (spaTracker == null) {
             spaTracker = new SPAPerformanceTracker(driver);
         }
-        
+
         stepCounter++;
     }
     
     @AfterStep(order = 100)
     public void afterStep(Scenario scenario) {
+        // Skip performance tracking if scenario has the @skip-performance tag
+        if (shouldSkipPerformanceTracking(scenario)) {
+            return;
+        }
+
         long stepDuration = System.currentTimeMillis() - stepStartTime;
         
         try {
@@ -238,6 +248,17 @@ public class StepPerformanceHooks {
         if (text == null) return "";
         if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength - 3) + "...";
+    }
+
+    /**
+     * Check if performance tracking should be skipped for this scenario
+     * Returns true if scenario has @skip-performance tag
+     */
+    private boolean shouldSkipPerformanceTracking(Scenario scenario) {
+        return scenario.getSourceTagNames().stream()
+                .anyMatch(tag -> tag.equalsIgnoreCase("@skip-performance") ||
+                                 tag.equalsIgnoreCase("@skipperformance") ||
+                                 tag.equalsIgnoreCase("@no-performance"));
     }
 
 }
